@@ -1,7 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from services.maps_search import search_hospitals
+from pydantic import BaseModel
 
 from app.routers import hospitals, referrals, triage
+
+class HospitalSearch(BaseModel):
+    location: tuple
+    query: str
 
 app = FastAPI(
     title="Care Router API",
@@ -25,3 +31,7 @@ app.include_router(referrals.router, prefix="/api")
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/hospitals")
+def find_hospital(data: HospitalSearch):
+    return search_hospitals(data.location, data.query, 5000)
