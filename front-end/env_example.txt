@@ -1,0 +1,8 @@
+# Backend API URL (Render deployment or local)
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+
+# Google Maps (client-side)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# OpenAI (server-side only, for Next.js API routes)
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
