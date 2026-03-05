@@ -1,9 +1,20 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from services.maps_search import search_hospitals
 from pydantic import BaseModel
 
-from app.routers import hospitals, referrals, triage
+from app.database import close_db, connect_db
+from app.routers import auth, hospitals, referrals, triage
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await connect_db()
+    yield
+    await close_db()
+
 
 class HospitalSearch(BaseModel):
     location: tuple
@@ -13,6 +24,7 @@ app = FastAPI(
     title="Care Router API",
     description="Symptom triage, hospital matching, and referral management for Care Router.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -23,6 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api")
 app.include_router(triage.router, prefix="/api")
 app.include_router(hospitals.router, prefix="/api")
 app.include_router(referrals.router, prefix="/api")

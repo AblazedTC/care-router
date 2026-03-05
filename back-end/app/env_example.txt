@@ -7,6 +7,9 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Google Maps
 GOOGLE_MAPS_API_KEY=AIzaXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+# JWT
+JWT_SECRET=your-secret-key-change-me
+
 # App settings
 APP_ENV=development
 PORT=8000

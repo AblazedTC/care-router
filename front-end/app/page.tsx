@@ -8,7 +8,11 @@ import {
   FileText,
   ShieldCheck,
   RotateCcw,
+  LogOut,
+  User,
 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { AuthPage } from "@/components/auth-page"
 import { toast } from "sonner"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -30,6 +34,7 @@ import {
 } from "@/lib/triage-engine"
 
 export default function HomePage() {
+  const { user, isAuthenticated, isGuest, isLoading, logout } = useAuth()
   const [activeTab, setActiveTab] = useState("triage")
   const [isProcessing, setIsProcessing] = useState(false)
   const [userInput, setUserInput] = useState("")
@@ -99,6 +104,18 @@ export default function HomePage() {
     setReferralToken("")
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="w-10 h-10 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated && !isGuest) {
+    return <AuthPage />
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Minimal header */}
@@ -152,10 +169,19 @@ export default function HomePage() {
             </TabsList>
           </Tabs>
 
-          <span className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="w-1.5 h-1.5 rounded-full bg-success" />
-            Online
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
+              <User className="w-3.5 h-3.5" />
+              {isGuest ? "Guest" : user?.name}
+            </span>
+            <button
+              onClick={logout}
+              className="hidden md:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Mobile tabs */}
