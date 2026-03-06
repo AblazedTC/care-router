@@ -1,13 +1,21 @@
+import logging
 import random
 from datetime import datetime, timedelta, timezone
 
 from app.data.mock_data import DIRECT_DIAGNOSES, HOSPITALS, SYMPTOM_RULES
 from app.database import get_referrals_collection
 from app.models import GuestInfo, Hospital, Referral, ScoredHospital, Severity, TriageCondition
+from app.services.openai_diagnosis import (
+    cache_diagnosis,
+    diagnose_with_openai,
+    get_cached_diagnosis,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def triage_from_symptoms(symptoms: str) -> TriageCondition | None:
-    """Analyze free-text symptoms and return the best-matching condition."""
+    """Analyze free-text symptoms and return the best-matching condition (rule-based fallback)."""
     text = symptoms.lower().strip()
 
     # 1. Check exact / direct-diagnosis keywords first
@@ -25,6 +33,48 @@ def triage_from_symptoms(symptoms: str) -> TriageCondition | None:
             best_condition = rule["condition"]
 
     return best_condition
+
+
+async def triage_from_symptoms_ai(
+    symptoms: str,
+) -> tuple[TriageCondition | None, list[ScoredHospital], bool]:
+    """AI-powered triage: check cache → call OpenAI → match hospitals → cache result.
+
+    Returns (condition, scored_hospitals, from_cache).
+    Falls back to the rule-based engine when OpenAI is unavailable.
+    """
+    # 1. Check the cache
+    cached = await get_cached_diagnosis(symptoms)
+    if cached is not None:
+        try:
+            condition = TriageCondition(**cached["condition"])
+            # Re-score hospitals to include live bed/wait data
+            hospitals = match_hospitals(condition)
+            return condition, hospitals, True
+        except Exception:
+            logger.warning("Corrupt cache entry — re-diagnosing", exc_info=True)
+
+    # 2. Try OpenAI diagnosis
+    condition = await diagnose_with_openai(symptoms)
+
+    # 3. Fall back to rule-based engine if OpenAI fails
+    if condition is None:
+        condition = triage_from_symptoms(symptoms)
+
+    if condition is None:
+        return None, [], False
+
+    # 4. Match hospitals
+    hospitals = match_hospitals(condition)
+
+    # 5. Cache the diagnosis + matched hospital IDs
+    try:
+        hospital_ids = [hospital.id for hospital in hospitals]
+        await cache_diagnosis(symptoms, condition, hospital_ids)
+    except Exception:
+        logger.warning("Failed to cache diagnosis", exc_info=True)
+
+    return condition, hospitals, False
 
 
 def match_hospitals(condition: TriageCondition) -> list[ScoredHospital]:

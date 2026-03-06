@@ -32,5 +32,9 @@ def get_referrals_collection():
     return get_db()["Referrals"]
 
 
+def get_diagnosis_cache_collection():
+    return get_db()["DiagnosisCache"]
+
+
 def get_hospitals_collection():
     return get_db()["Hospitals"]
