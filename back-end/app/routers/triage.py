@@ -17,5 +17,4 @@ async def triage_symptoms(body: TriageRequest):
 
     if condition is None:
         return TriageResponse(condition=None, hospitals=[])
-
     return TriageResponse(condition=condition, hospitals=hospitals)

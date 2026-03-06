@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { SymptomInput } from "@/components/symptom-input"
+import { FollowUpAssessment } from "@/components/follow-up-assessment"
 import { TriageResult } from "@/components/triage-result"
 import { HospitalList } from "@/components/hospital-list"
 import { HospitalsBrowse } from "@/components/hospitals-browse"
@@ -27,11 +28,21 @@ import {
 import { ReferralModal } from "@/components/referral-modal"
 import { GuestInfoForm, type GuestInfo } from "@/components/guest-info-form"
 import type { TriageCondition } from "@/lib/mock-data"
+import { type ScoredHospital } from "@/lib/triage-engine"
 import {
   type ScoredHospital,
 } from "@/lib/triage-engine"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+
+type FollowUpFocus =
+  | "injury"
+  | "headache"
+  | "respiratory"
+  | "abdominal"
+  | "chest"
+  | "skin"
+  | "general"
 
 export default function HomePage() {
   const { user, token, isAuthenticated, isGuest, isLoading } = useAuth()
@@ -47,6 +58,9 @@ export default function HomePage() {
   const [referralExpiresAt, setReferralExpiresAt] = useState<Date | undefined>()
   const [showReferral, setShowReferral] = useState(false)
   const [referrals, setReferrals] = useState<ReferralRecord[]>([])
+  const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([])
+  const [initialSymptoms, setInitialSymptoms] = useState("")
+  const [followUpFocus, setFollowUpFocus] = useState<FollowUpFocus>("general")
 
   // Guest info form state
   const [showGuestForm, setShowGuestForm] = useState(false)
@@ -83,11 +97,116 @@ export default function HomePage() {
     fetchReferrals()
   }, [fetchReferrals])
 
+  async function runTriage(assessmentText: string) {
+    const response = await fetch("/api/triage", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ symptoms: assessmentText }),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch triage results")
+    }
+
+    const data = await response.json()
+
+    if (!data.condition) {
+      toast.error(
+        "Could not identify a condition. Try describing symptoms differently."
+      )
+      setCondition(null)
+      setHospitals([])
+      return
+    }
+
+    setCondition(data.condition)
+    setHospitals(data.hospitals ?? [])
+
+    if ((data.hospitals ?? []).length > 0) {
+      toast.success(`Found ${data.hospitals.length} matching hospitals`)
+    }
+  }
+
+  function buildAssessmentText(baseSymptoms: string, questions: string[], answers: string[]) {
+    const followUpLines = questions
+      .map((question, idx) => `${idx + 1}. ${question} Answer: ${answers[idx] ?? "Unknown"}.`)
+      .join("\n")
+
+    return `${baseSymptoms}\n\nFollow-up responses:\n${followUpLines}`
+  }
+
   async function handleSymptomSubmit(input: string) {
     setIsProcessing(true)
     setUserInput(input)
+    setInitialSymptoms(input)
     setSelectedHospital(null)
     setReferralToken("")
+    setFollowUpQuestions([])
+    setFollowUpFocus("general")
+    setCondition(null)
+    setHospitals([])
+
+    try {
+      // Step 1: ask follow-up assessor whether more context is needed.
+      const assessResponse = await fetch("/api/assess", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ symptoms: input }),
+      })
+
+      if (!assessResponse.ok) {
+        throw new Error("Failed to assess symptoms")
+      }
+
+      const assessData = await assessResponse.json()
+      const assessFocus: FollowUpFocus =
+        assessData.focus && typeof assessData.focus === "string"
+          ? assessData.focus
+          : "general"
+
+      if (assessData.needsFollowUp && Array.isArray(assessData.questions) && assessData.questions.length > 0) {
+        setFollowUpQuestions(assessData.questions.slice(0, 3))
+        setFollowUpFocus(assessFocus)
+        setIsProcessing(false)
+        toast.info("A few clarifying questions will help improve diagnosis accuracy.")
+        return
+      }
+
+      await runTriage(input)
+      setIsProcessing(false)
+    } catch (error) {
+      console.error("Triage error:", error)
+      toast.error("Unable to connect to triage service. Please try again.")
+      setCondition(null)
+      setHospitals([])
+      setIsProcessing(false)
+    }
+  }
+
+  async function handleFollowUpComplete(answers: string[]) {
+    setIsProcessing(true)
+
+    try {
+      const assessmentText = buildAssessmentText(
+        initialSymptoms,
+        followUpQuestions,
+        answers
+      )
+      await runTriage(assessmentText)
+      setUserInput(assessmentText)
+      setFollowUpQuestions([])
+      setFollowUpFocus("general")
+      setIsProcessing(false)
+    } catch (error) {
+      console.error("Follow-up triage error:", error)
+      toast.error("Unable to complete diagnosis after follow-up questions.")
+      setCondition(null)
+      setHospitals([])
+      setIsProcessing(false)
 
     try {
       const res = await fetch(`${API_URL}/triage`, {
@@ -208,6 +327,9 @@ export default function HomePage() {
     setCondition(null)
     setHospitals([])
     setUserInput("")
+    setInitialSymptoms("")
+    setFollowUpQuestions([])
+    setFollowUpFocus("general")
     setSelectedHospital(null)
     setReferralToken("")
   }
@@ -236,7 +358,14 @@ export default function HomePage() {
       {/* Minimal header */}
       <header className="shrink-0 border-b border-border bg-card">
         <div className="flex items-center justify-between px-6 h-14">
-          <div className="flex items-center gap-3">
+          <button
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-0 p-0"
+            onClick={() => {
+              setActiveTab("triage")
+              handleReset()
+            }}
+            aria-label="Reset triage and go to home"
+          >
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
               <Activity className="w-4 h-4" />
             </div>
@@ -246,7 +375,7 @@ export default function HomePage() {
             >
               MediRoute
             </h1>
-          </div>
+          </button>
 
           {/* Tabs in header */}
           <Tabs
@@ -326,6 +455,17 @@ export default function HomePage() {
                 <p className="text-sm text-muted-foreground">
                   Analyzing symptoms...
                 </p>
+              </div>
+            ) : followUpQuestions.length > 0 ? (
+              <div className="flex items-center justify-center h-full p-6 overflow-y-auto">
+                <div className="w-full max-w-2xl">
+                  <FollowUpAssessment
+                    questions={followUpQuestions}
+                    onComplete={handleFollowUpComplete}
+                    isProcessing={isProcessing}
+                    focus={followUpFocus}
+                  />
+                </div>
               </div>
             ) : condition ? (
               <div className="flex flex-col lg:flex-row h-full">

@@ -13,6 +13,16 @@ from app.services.openai_diagnosis import (
 
 logger = logging.getLogger(__name__)
 
+def get_default_condition(symptoms: str) -> TriageCondition:
+    """Return a safe default condition for any symptoms."""
+    return TriageCondition(
+        name="General Health Concern",
+        severity=Severity.MODERATE,
+        specialty=["General Medicine"],
+        description=f"We've received your symptoms: '{symptoms[:100]}'. A general medical evaluation is recommended for proper diagnosis and treatment.",
+        confidence=0.50,
+    )
+
 
 def triage_from_symptoms(symptoms: str) -> TriageCondition | None:
     """Analyze free-text symptoms and return the best-matching condition (rule-based fallback)."""
@@ -32,6 +42,10 @@ def triage_from_symptoms(symptoms: str) -> TriageCondition | None:
             best_score = score
             best_condition = rule["condition"]
 
+    # 3. Return default if nothing matched
+    if best_condition is None:
+        return get_default_condition(symptoms)
+    
     return best_condition
 
 
