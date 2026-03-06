@@ -5,13 +5,10 @@ import os
 import re
 from datetime import datetime, timezone
 
-from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 from app.database import get_diagnosis_cache_collection
 from app.models import Severity, TriageCondition
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -108,12 +105,17 @@ async def diagnose_with_openai(symptoms: str) -> TriageCondition | None:
 
 async def get_cached_diagnosis(symptoms: str) -> dict | None:
     """Check MongoDB for a cached diagnosis matching these symptoms."""
-    normalized = _normalize_symptoms(symptoms)
-    symptoms_hash = _hash_symptoms(normalized)
-
-    col = get_diagnosis_cache_collection()
-    doc = await col.find_one({"symptoms_hash": symptoms_hash})
-    return doc
+    try:
+        col = get_diagnosis_cache_collection()
+        if col is None:
+            return None
+        normalized = _normalize_symptoms(symptoms)
+        symptoms_hash = _hash_symptoms(normalized)
+        doc = await col.find_one({"symptoms_hash": symptoms_hash})
+        return doc
+    except Exception:
+        logger.warning("Cache lookup failed — skipping cache", exc_info=True)
+        return None
 
 
 async def cache_diagnosis(
@@ -122,20 +124,24 @@ async def cache_diagnosis(
     hospital_ids: list[str],
 ) -> None:
     """Save a diagnosis and its matched hospital IDs to the cache."""
-    normalized = _normalize_symptoms(symptoms)
-    symptoms_hash = _hash_symptoms(normalized)
-
-    col = get_diagnosis_cache_collection()
-    await col.update_one(
-        {"symptoms_hash": symptoms_hash},
-        {
-            "$set": {
-                "symptoms_hash": symptoms_hash,
-                "symptoms": normalized,
-                "condition": condition.model_dump(),
-                "hospital_ids": hospital_ids,
-                "created_at": datetime.now(timezone.utc),
-            }
-        },
-        upsert=True,
-    )
+    try:
+        col = get_diagnosis_cache_collection()
+        if col is None:
+            return
+        normalized = _normalize_symptoms(symptoms)
+        symptoms_hash = _hash_symptoms(normalized)
+        await col.update_one(
+            {"symptoms_hash": symptoms_hash},
+            {
+                "$set": {
+                    "symptoms_hash": symptoms_hash,
+                    "symptoms": normalized,
+                    "condition": condition.model_dump(),
+                    "hospital_ids": hospital_ids,
+                    "created_at": datetime.now(timezone.utc),
+                }
+            },
+            upsert=True,
+        )
+    except Exception:
+        logger.warning("Failed to write diagnosis cache", exc_info=True)
