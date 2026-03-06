@@ -30,3 +30,7 @@ def get_db():
 
 def get_referrals_collection():
     return get_db()["Referrals"]
+
+
+def get_hospitals_collection():
+    return get_db()["Hospitals"]
