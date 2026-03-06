@@ -69,7 +69,7 @@ async def triage_from_symptoms_ai(
 
     # 5. Cache the diagnosis + matched hospital IDs
     try:
-        hospital_ids = [h.id for h in hospitals]
+        hospital_ids = [hospital.id for hospital in hospitals]
         await cache_diagnosis(symptoms, condition, hospital_ids)
     except Exception:
         logger.warning("Failed to cache diagnosis", exc_info=True)

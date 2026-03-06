@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
@@ -51,7 +52,7 @@ The JSON must have exactly these fields:
 - "confidence": number between 0 and 1 indicating diagnostic confidence
 
 Important:
-- Use the "specialty" values that best match common hospital department names such as: \
+- Use only the following "specialty" values to match hospital department names: \
 General Medicine, Emergency, Cardiology, Cardiac Surgery, Vascular Medicine, Orthopedics, \
 Sports Medicine, Rehabilitation, Pediatrics, Neonatal Care, Child Psychology, Neurology, \
 Oncology, Research Medicine, Psychiatry, Psychology, Substance Abuse, Dermatology, \
@@ -80,13 +81,9 @@ async def diagnose_with_openai(symptoms: str) -> TriageCondition | None:
         if not content:
             return None
 
-        # Strip markdown fences if present
+        # Strip markdown fences if present (e.g. ```json ... ```)
         text = content.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[-1]
-            if text.endswith("```"):
-                text = text[: -len("```")]
-            text = text.strip()
+        text = re.sub(r"^```(?:\w+)?\n?|```$", "", text, flags=re.MULTILINE).strip()
 
         data = json.loads(text)
 
