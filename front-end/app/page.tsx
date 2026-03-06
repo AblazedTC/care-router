@@ -8,6 +8,7 @@ import {
   FileText,
   ShieldCheck,
   RotateCcw,
+  ArrowLeft,
   LogOut,
   User,
 } from "lucide-react"
@@ -212,6 +213,13 @@ export default function HomePage() {
     setReferralToken("")
   }
 
+  function handleBack() {
+    setCondition(null)
+    setHospitals([])
+    setSelectedHospital(null)
+    setReferralToken("")
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -335,15 +343,26 @@ export default function HomePage() {
                 {/* Left panel: assessment */}
                 <div className="shrink-0 lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r border-border p-5 flex flex-col gap-4 overflow-y-auto">
                   <TriageResult condition={condition} userInput={userInput} />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    className="gap-1.5 self-start text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Start over
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleBack}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      Back
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReset}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Start over
+                    </Button>
+                  </div>
                 </div>
                 {/* Right panel: hospitals */}
                 <div className="flex-1 min-w-0 min-h-0 p-5">
@@ -360,6 +379,7 @@ export default function HomePage() {
                   <SymptomInput
                     onSubmit={handleSymptomSubmit}
                     isProcessing={isProcessing}
+                    initialValue={userInput}
                   />
                 </div>
               </div>
