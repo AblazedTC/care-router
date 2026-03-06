@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Activity,
   Stethoscope,
@@ -25,16 +25,18 @@ import {
   type ReferralRecord,
 } from "@/components/referral-history"
 import { ReferralModal } from "@/components/referral-modal"
+import { GuestInfoForm, type GuestInfo } from "@/components/guest-info-form"
 import type { TriageCondition } from "@/lib/mock-data"
 import {
   triageFromSymptoms,
   matchHospitals,
-  generateReferralToken,
   type ScoredHospital,
 } from "@/lib/triage-engine"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+
 export default function HomePage() {
-  const { user, isAuthenticated, isGuest, isLoading, logout } = useAuth()
+  const { user, token, isAuthenticated, isGuest, isLoading, logout } = useAuth()
   const [activeTab, setActiveTab] = useState("triage")
   const [isProcessing, setIsProcessing] = useState(false)
   const [userInput, setUserInput] = useState("")
@@ -43,8 +45,45 @@ export default function HomePage() {
   const [selectedHospital, setSelectedHospital] =
     useState<ScoredHospital | null>(null)
   const [referralToken, setReferralToken] = useState("")
+  const [referralIssuedAt, setReferralIssuedAt] = useState<Date | undefined>()
+  const [referralExpiresAt, setReferralExpiresAt] = useState<Date | undefined>()
   const [showReferral, setShowReferral] = useState(false)
   const [referrals, setReferrals] = useState<ReferralRecord[]>([])
+
+  // Guest info form state
+  const [showGuestForm, setShowGuestForm] = useState(false)
+  const [pendingHospital, setPendingHospital] = useState<ScoredHospital | null>(
+    null
+  )
+
+  // Fetch referral history for authenticated users
+  const fetchReferrals = useCallback(async () => {
+    if (!isAuthenticated || !token) return
+    try {
+      const res = await fetch(`${API_URL}/referrals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setReferrals(
+          data.map((r: Record<string, string>) => ({
+            token: r.token,
+            hospitalName: r.hospitalName,
+            conditionName: r.conditionName,
+            severity: r.severity,
+            issuedAt: new Date(r.issuedAt),
+            expiresAt: new Date(r.expiresAt),
+          }))
+        )
+      }
+    } catch {
+      // silently fail — referral history is non-critical
+    }
+  }, [isAuthenticated, token])
+
+  useEffect(() => {
+    fetchReferrals()
+  }, [fetchReferrals])
 
   async function handleSymptomSubmit(input: string) {
     setIsProcessing(true)
@@ -77,23 +116,78 @@ export default function HomePage() {
   }
 
   function handleGenerateReferral(hospital: ScoredHospital) {
-    const token = generateReferralToken()
-    setSelectedHospital(hospital)
-    setReferralToken(token)
-    setShowReferral(true)
+    if (isGuest) {
+      // Guest users need to fill out info first
+      setPendingHospital(hospital)
+      setShowGuestForm(true)
+      return
+    }
+    // Authenticated user — create referral directly
+    createReferralOnServer(hospital, undefined)
+  }
 
-    const now = new Date()
-    setReferrals((prev) => [
-      {
-        token,
-        hospitalName: hospital.name,
-        conditionName: condition?.name ?? "Unknown",
-        severity: condition?.severity ?? "moderate",
-        issuedAt: now,
-        expiresAt: new Date(now.getTime() + 72 * 60 * 60 * 1000),
-      },
-      ...prev,
-    ])
+  async function createReferralOnServer(
+    hospital: ScoredHospital,
+    guestInfo: GuestInfo | undefined
+  ) {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`
+    }
+
+    const body: Record<string, unknown> = {
+      hospitalId: hospital.id,
+      conditionName: condition?.name ?? "Unknown",
+      severity: condition?.severity ?? "moderate",
+    }
+    if (guestInfo) {
+      body.guestInfo = guestInfo
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/referrals`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.detail || "Failed to create referral")
+        return
+      }
+
+      const referral = await res.json()
+
+      setSelectedHospital(hospital)
+      setReferralToken(referral.token)
+      setReferralIssuedAt(new Date(referral.issuedAt))
+      setReferralExpiresAt(new Date(referral.expiresAt))
+      setShowReferral(true)
+
+      const record: ReferralRecord = {
+        token: referral.token,
+        hospitalName: referral.hospitalName,
+        conditionName: referral.conditionName,
+        severity: referral.severity,
+        issuedAt: new Date(referral.issuedAt),
+        expiresAt: new Date(referral.expiresAt),
+      }
+
+      setReferrals((prev) => [record, ...prev])
+    } catch {
+      toast.error("Network error — could not create referral")
+    }
+  }
+
+  function handleGuestInfoSubmit(info: GuestInfo) {
+    setShowGuestForm(false)
+    if (pendingHospital) {
+      createReferralOnServer(pendingHospital, info)
+      setPendingHospital(null)
+    }
   }
 
   function handleReset() {
@@ -284,6 +378,15 @@ export default function HomePage() {
         hospital={selectedHospital}
         condition={condition}
         referralToken={referralToken}
+        issuedAt={referralIssuedAt}
+        expiresAt={referralExpiresAt}
+      />
+
+      {/* Guest Info Form */}
+      <GuestInfoForm
+        open={showGuestForm}
+        onOpenChange={setShowGuestForm}
+        onSubmit={handleGuestInfoSubmit}
       />
     </div>
   )

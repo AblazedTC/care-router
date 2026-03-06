@@ -1,12 +1,9 @@
 import random
-import string
 from datetime import datetime, timedelta, timezone
 
 from app.data.mock_data import DIRECT_DIAGNOSES, HOSPITALS, SYMPTOM_RULES
-from app.models import Hospital, Referral, ScoredHospital, Severity, TriageCondition
-
-# In-memory referral store (replace with a database later)
-_referrals: list[Referral] = []
+from app.database import get_referrals_collection
+from app.models import GuestInfo, Hospital, Referral, ScoredHospital, Severity, TriageCondition
 
 
 def triage_from_symptoms(symptoms: str) -> TriageCondition | None:
@@ -96,8 +93,14 @@ def generate_referral_token() -> str:
     return f"MR-{'-'.join(segments)}"
 
 
-def create_referral(hospital_id: str, condition_name: str, severity: Severity) -> Referral:
-    """Create and store a new referral."""
+async def create_referral(
+    hospital_id: str,
+    condition_name: str,
+    severity: Severity,
+    user_id: str | None = None,
+    guest_info: GuestInfo | None = None,
+) -> Referral:
+    """Create and persist a new referral to MongoDB."""
     hospital = next((h for h in HOSPITALS if h.id == hospital_id), None)
     if hospital is None:
         raise ValueError(f"Hospital '{hospital_id}' not found")
@@ -110,18 +113,26 @@ def create_referral(hospital_id: str, condition_name: str, severity: Severity) -
         severity=severity,
         issuedAt=now,
         expiresAt=now + timedelta(hours=72),
+        userId=user_id,
+        guestInfo=guest_info,
     )
-    _referrals.append(referral)
+
+    col = get_referrals_collection()
+    await col.insert_one(referral.model_dump(by_alias=True))
     return referral
 
 
-def get_referrals() -> list[Referral]:
-    return list(_referrals)
+async def get_referrals_for_user(user_id: str) -> list[Referral]:
+    """Return all referrals for a given authenticated user."""
+    col = get_referrals_collection()
+    docs = await col.find({"userId": user_id}).sort("issuedAt", -1).to_list(length=200)
+    return [Referral(**doc) for doc in docs]
 
 
-def get_referral_by_token(token: str) -> Referral | None:
-    return next((r for r in _referrals if r.token == token), None)
-
-
-def clear_referrals() -> None:
-    _referrals.clear()
+async def get_referral_by_token(token: str) -> Referral | None:
+    """Look up a referral by its token."""
+    col = get_referrals_collection()
+    doc = await col.find_one({"token": token})
+    if doc is None:
+        return None
+    return Referral(**doc)
