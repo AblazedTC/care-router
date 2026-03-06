@@ -8,6 +8,7 @@ import { toast } from "sonner"
 interface SymptomInputProps {
   onSubmit: (input: string) => void
   isProcessing: boolean
+  initialValue?: string
 }
 
 const EXAMPLES = [
@@ -19,8 +20,8 @@ const EXAMPLES = [
   "Anxiety and trouble sleeping",
 ]
 
-export function SymptomInput({ onSubmit, isProcessing }: SymptomInputProps) {
-  const [input, setInput] = useState("")
+export function SymptomInput({ onSubmit, isProcessing, initialValue = "" }: SymptomInputProps) {
+  const [input, setInput] = useState(initialValue)
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)

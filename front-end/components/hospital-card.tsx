@@ -8,9 +8,11 @@ import {
   Zap,
   FileText,
   CheckCircle2,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ScoredHospital } from "@/lib/triage-engine"
+import { getGoogleMapsUrl } from "@/lib/utils"
 
 interface HospitalCardProps {
   hospital: ScoredHospital
@@ -102,6 +104,18 @@ export function HospitalCard({
           ))}
         </ul>
       )}
+
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <a
+          href={getGoogleMapsUrl(hospital.name, hospital.address)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" />
+          View on Google Maps
+        </a>
+      </div>
 
       <Button
         onClick={() => onGenerateReferral(hospital)}
