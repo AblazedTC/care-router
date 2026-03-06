@@ -2,7 +2,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+load_dotenv()  # Load .env file
 
+<<<<<<< HEAD
 from app.database import close_db, connect_db
 from app.routers import auth, hospitals, referrals, triage
 
@@ -13,6 +16,10 @@ async def lifespan(app: FastAPI):
     yield
     await close_db()
 
+=======
+from app.routers import hospitals, referrals, triage
+from app.services.db import init_db
+>>>>>>> bb86b7d (triage follo-up questions)
 
 app = FastAPI(
     title="Care Router API",
@@ -20,6 +27,10 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+@app.on_event("startup")
+def startup():
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,

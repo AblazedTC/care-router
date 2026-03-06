@@ -46,6 +46,7 @@ async def issue_referral(
         )
 
     try:
+<<<<<<< HEAD
         return await create_referral(
             hospital_id=body.hospital_id,
             condition_name=body.condition_name,
@@ -53,6 +54,9 @@ async def issue_referral(
             user_id=user_id,
             guest_info=body.guest_info,
         )
+=======
+        return create_referral(body.hospital_id, body.condition_name, body.severity, body.summary)
+>>>>>>> bb86b7d (triage follo-up questions)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
