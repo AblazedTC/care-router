@@ -12,10 +12,13 @@ node_modules/
 .env.development.local
 .env.test.local
 .env.production.local
+**/.env
+**/.env.*
 
 # Next.js
 .next/
 out/
+**/.next/
 
 # Python
 __pycache__/
@@ -26,6 +29,9 @@ __pycache__/
 venv/
 env/
 .Python
+**/.venv/
+**/venv/
+**/__pycache__/
 
 # IDE
 .vscode/

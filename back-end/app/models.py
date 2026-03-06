@@ -148,5 +148,3 @@ class TokenResponse(BaseModel):
     access_token: str = Field(alias="accessToken")
     token_type: str = "bearer"
     user: UserResponse
-
-    model_config = {"populate_by_name": True}
