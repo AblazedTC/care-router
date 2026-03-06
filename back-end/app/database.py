@@ -1,5 +1,6 @@
 import os
 
+import certifi
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -13,7 +14,7 @@ db = None
 
 async def connect_db():
     global client, db
-    client = AsyncIOMotorClient(MONGODB_URI)
+    client = AsyncIOMotorClient(MONGODB_URI, tlsCAFile=certifi.where())
     db = client.get_default_database("care")
 
 
