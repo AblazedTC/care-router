@@ -29,9 +29,6 @@ import { ReferralModal } from "@/components/referral-modal"
 import { GuestInfoForm, type GuestInfo } from "@/components/guest-info-form"
 import type { TriageCondition } from "@/lib/mock-data"
 import { type ScoredHospital } from "@/lib/triage-engine"
-import {
-  type ScoredHospital,
-} from "@/lib/triage-engine"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
@@ -204,44 +201,6 @@ export default function HomePage() {
     } catch (error) {
       console.error("Follow-up triage error:", error)
       toast.error("Unable to complete diagnosis after follow-up questions.")
-      setCondition(null)
-      setHospitals([])
-      setIsProcessing(false)
-
-    try {
-      const res = await fetch(`${API_URL}/triage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symptoms: input }),
-      })
-
-      if (!res.ok) {
-        throw new Error("Triage request failed")
-      }
-
-      const data = await res.json()
-      const result: TriageCondition | null = data.condition ?? null
-      const matched: ScoredHospital[] = data.hospitals ?? []
-
-      if (!result) {
-        toast.error(
-          "Could not identify a condition. Try describing symptoms differently."
-        )
-        setCondition(null)
-        setHospitals([])
-        setIsProcessing(false)
-        return
-      }
-
-      setCondition(result)
-      setHospitals(matched)
-      setIsProcessing(false)
-
-      if (matched.length > 0) {
-        toast.success(`Found ${matched.length} matching hospitals`)
-      }
-    } catch {
-      toast.error("Failed to analyze symptoms. Please try again.")
       setCondition(null)
       setHospitals([])
       setIsProcessing(false)
