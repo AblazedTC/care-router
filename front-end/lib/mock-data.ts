@@ -27,7 +27,7 @@ export interface SymptomRule {
 
 export const hospitals: Hospital[] = [
   {
-    id: "h1",
+    id: "hosp-1",
     name: "City General Hospital",
     specialty: ["General Medicine", "Emergency", "Cardiology", "Neurology"],
     distance: 2.3,
@@ -40,7 +40,7 @@ export const hospitals: Hospital[] = [
     image: "/hospitals/general.jpg",
   },
   {
-    id: "h2",
+    id: "hosp-2",
     name: "St. Mary's Heart Center",
     specialty: ["Cardiology", "Cardiac Surgery", "Vascular Medicine"],
     distance: 5.1,
@@ -53,7 +53,7 @@ export const hospitals: Hospital[] = [
     image: "/hospitals/heart.jpg",
   },
   {
-    id: "h3",
+    id: "hosp-3",
     name: "Riverside Orthopedic Clinic",
     specialty: ["Orthopedics", "Sports Medicine", "Rehabilitation"],
     distance: 3.8,
@@ -66,7 +66,7 @@ export const hospitals: Hospital[] = [
     image: "/hospitals/ortho.jpg",
   },
   {
-    id: "h4",
+    id: "hosp-4",
     name: "Metro Children's Hospital",
     specialty: ["Pediatrics", "Neonatal Care", "Child Psychology"],
     distance: 4.2,
@@ -79,7 +79,7 @@ export const hospitals: Hospital[] = [
     image: "/hospitals/children.jpg",
   },
   {
-    id: "h5",
+    id: "hosp-5",
     name: "University Medical Center",
     specialty: ["Neurology", "Oncology", "Research Medicine", "General Medicine"],
     distance: 7.5,
@@ -92,7 +92,7 @@ export const hospitals: Hospital[] = [
     image: "/hospitals/university.jpg",
   },
   {
-    id: "h6",
+    id: "hosp-6",
     name: "Lakeside Mental Health Center",
     specialty: ["Psychiatry", "Psychology", "Substance Abuse"],
     distance: 6.0,
@@ -105,7 +105,7 @@ export const hospitals: Hospital[] = [
     image: "/hospitals/mental.jpg",
   },
   {
-    id: "h7",
+    id: "hosp-7",
     name: "WellCare Dermatology Institute",
     specialty: ["Dermatology", "Cosmetic Surgery", "Allergy"],
     distance: 3.0,
@@ -118,7 +118,7 @@ export const hospitals: Hospital[] = [
     image: "/hospitals/derma.jpg",
   },
   {
-    id: "h8",
+    id: "hosp-8",
     name: "PrimaCare ENT Specialists",
     specialty: ["ENT", "Audiology", "Allergy"],
     distance: 2.8,

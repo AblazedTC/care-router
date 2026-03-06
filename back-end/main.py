@@ -2,8 +2,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from services.maps_search import search_hospitals
-from pydantic import BaseModel
 
 from app.database import close_db, connect_db
 from app.routers import auth, hospitals, referrals, triage
@@ -15,10 +13,6 @@ async def lifespan(app: FastAPI):
     yield
     await close_db()
 
-
-class HospitalSearch(BaseModel):
-    location: tuple
-    query: str
 
 app = FastAPI(
     title="Care Router API",
@@ -44,7 +38,3 @@ app.include_router(referrals.router, prefix="/api")
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
-
-@app.get("/hospitals")
-def find_hospital(data: HospitalSearch):
-    return search_hospitals(data.location, data.query, 5000)
