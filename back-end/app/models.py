@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Severity(str, Enum):
@@ -91,6 +91,14 @@ class Referral(BaseModel):
     guest_info: GuestInfo | None = Field(default=None, alias="guestInfo")
 
     model_config = {"populate_by_name": True}
+
+    @field_validator("issued_at", "expires_at", mode="after")
+    @classmethod
+    def ensure_utc(cls, v: datetime) -> datetime:
+        """Normalize naive datetimes from MongoDB to timezone-aware UTC."""
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
