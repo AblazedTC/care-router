@@ -9,11 +9,10 @@ import {
   ShieldCheck,
   RotateCcw,
   ArrowLeft,
-  LogOut,
-  User,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthPage } from "@/components/auth-page"
+import { ProfileMenu } from "@/components/profile-menu"
 import { toast } from "sonner"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -35,7 +34,7 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
 export default function HomePage() {
-  const { user, token, isAuthenticated, isGuest, isLoading, logout } = useAuth()
+  const { user, token, isAuthenticated, isGuest, isLoading } = useAuth()
   const [activeTab, setActiveTab] = useState("triage")
   const [isProcessing, setIsProcessing] = useState(false)
   const [userInput, setUserInput] = useState("")
@@ -286,17 +285,7 @@ export default function HomePage() {
           </Tabs>
 
           <div className="flex items-center gap-3">
-            <span className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
-              <User className="w-3.5 h-3.5" />
-              {isGuest ? "Guest" : user?.name}
-            </span>
-            <button
-              onClick={logout}
-              className="hidden md:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Logout
-            </button>
+            <ProfileMenu />
           </div>
         </div>
 
