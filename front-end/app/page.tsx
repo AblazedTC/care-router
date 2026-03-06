@@ -28,8 +28,6 @@ import { ReferralModal } from "@/components/referral-modal"
 import { GuestInfoForm, type GuestInfo } from "@/components/guest-info-form"
 import type { TriageCondition } from "@/lib/mock-data"
 import {
-  triageFromSymptoms,
-  matchHospitals,
   type ScoredHospital,
 } from "@/lib/triage-engine"
 
@@ -91,27 +89,43 @@ export default function HomePage() {
     setSelectedHospital(null)
     setReferralToken("")
 
-    await new Promise((resolve) => setTimeout(resolve, 1200))
+    try {
+      const res = await fetch(`${API_URL}/triage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symptoms: input }),
+      })
 
-    const result = triageFromSymptoms(input)
+      if (!res.ok) {
+        throw new Error("Triage request failed")
+      }
 
-    if (!result) {
-      toast.error(
-        "Could not identify a condition. Try describing symptoms differently."
-      )
+      const data = await res.json()
+      const result: TriageCondition | null = data.condition ?? null
+      const matched: ScoredHospital[] = data.hospitals ?? []
+
+      if (!result) {
+        toast.error(
+          "Could not identify a condition. Try describing symptoms differently."
+        )
+        setCondition(null)
+        setHospitals([])
+        setIsProcessing(false)
+        return
+      }
+
+      setCondition(result)
+      setHospitals(matched)
+      setIsProcessing(false)
+
+      if (matched.length > 0) {
+        toast.success(`Found ${matched.length} matching hospitals`)
+      }
+    } catch {
+      toast.error("Failed to analyze symptoms. Please try again.")
       setCondition(null)
       setHospitals([])
       setIsProcessing(false)
-      return
-    }
-
-    setCondition(result)
-    const matched = matchHospitals(result)
-    setHospitals(matched)
-    setIsProcessing(false)
-
-    if (matched.length > 0) {
-      toast.success(`Found ${matched.length} matching hospitals`)
     }
   }
 
