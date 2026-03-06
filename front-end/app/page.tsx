@@ -8,6 +8,7 @@ import {
   FileText,
   ShieldCheck,
   RotateCcw,
+  ArrowLeft,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthPage } from "@/components/auth-page"
@@ -27,8 +28,6 @@ import { ReferralModal } from "@/components/referral-modal"
 import { GuestInfoForm, type GuestInfo } from "@/components/guest-info-form"
 import type { TriageCondition } from "@/lib/mock-data"
 import {
-  triageFromSymptoms,
-  matchHospitals,
   type ScoredHospital,
 } from "@/lib/triage-engine"
 
@@ -90,27 +89,43 @@ export default function HomePage() {
     setSelectedHospital(null)
     setReferralToken("")
 
-    await new Promise((resolve) => setTimeout(resolve, 1200))
+    try {
+      const res = await fetch(`${API_URL}/triage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symptoms: input }),
+      })
 
-    const result = triageFromSymptoms(input)
+      if (!res.ok) {
+        throw new Error("Triage request failed")
+      }
 
-    if (!result) {
-      toast.error(
-        "Could not identify a condition. Try describing symptoms differently."
-      )
+      const data = await res.json()
+      const result: TriageCondition | null = data.condition ?? null
+      const matched: ScoredHospital[] = data.hospitals ?? []
+
+      if (!result) {
+        toast.error(
+          "Could not identify a condition. Try describing symptoms differently."
+        )
+        setCondition(null)
+        setHospitals([])
+        setIsProcessing(false)
+        return
+      }
+
+      setCondition(result)
+      setHospitals(matched)
+      setIsProcessing(false)
+
+      if (matched.length > 0) {
+        toast.success(`Found ${matched.length} matching hospitals`)
+      }
+    } catch {
+      toast.error("Failed to analyze symptoms. Please try again.")
       setCondition(null)
       setHospitals([])
       setIsProcessing(false)
-      return
-    }
-
-    setCondition(result)
-    const matched = matchHospitals(result)
-    setHospitals(matched)
-    setIsProcessing(false)
-
-    if (matched.length > 0) {
-      toast.success(`Found ${matched.length} matching hospitals`)
     }
   }
 
@@ -193,6 +208,13 @@ export default function HomePage() {
     setCondition(null)
     setHospitals([])
     setUserInput("")
+    setSelectedHospital(null)
+    setReferralToken("")
+  }
+
+  function handleBack() {
+    setCondition(null)
+    setHospitals([])
     setSelectedHospital(null)
     setReferralToken("")
   }
@@ -310,15 +332,26 @@ export default function HomePage() {
                 {/* Left panel: assessment */}
                 <div className="shrink-0 lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r border-border p-5 flex flex-col gap-4 overflow-y-auto">
                   <TriageResult condition={condition} userInput={userInput} />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    className="gap-1.5 self-start text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Start over
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleBack}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      Back
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReset}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Start over
+                    </Button>
+                  </div>
                 </div>
                 {/* Right panel: hospitals */}
                 <div className="flex-1 min-w-0 min-h-0 p-5">
@@ -335,6 +368,7 @@ export default function HomePage() {
                   <SymptomInput
                     onSubmit={handleSymptomSubmit}
                     isProcessing={isProcessing}
+                    initialValue={userInput}
                   />
                 </div>
               </div>

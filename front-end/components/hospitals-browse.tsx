@@ -1,12 +1,33 @@
 "use client"
 
-import { MapPin, Star, BedDouble, Clock, Zap, Search } from "lucide-react"
-import { useState } from "react"
+import { MapPin, Star, BedDouble, Clock, Zap, Search, ExternalLink } from "lucide-react"
+import { useState, useEffect } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { hospitals } from "@/lib/mock-data"
+import { hospitals as mockHospitals, type Hospital } from "@/lib/mock-data"
+import { getGoogleMapsUrl } from "@/lib/utils"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
 export function HospitalsBrowse() {
   const [search, setSearch] = useState("")
+  const [hospitals, setHospitals] = useState<Hospital[]>(mockHospitals)
+
+  useEffect(() => {
+    async function fetchHospitals() {
+      try {
+        const res = await fetch(`${API_URL}/hospitals`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.length > 0) {
+            setHospitals(data)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch hospitals from API, using mock data:", err)
+      }
+    }
+    fetchHospitals()
+  }, [])
 
   const filtered = hospitals.filter(
     (h) =>
@@ -96,6 +117,16 @@ export function HospitalsBrowse() {
                   {hospital.distance} km
                 </span>
               </div>
+
+              <a
+                href={getGoogleMapsUrl(hospital.name, hospital.address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                View on Google Maps
+              </a>
             </div>
           ))}
 
