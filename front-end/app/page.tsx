@@ -332,7 +332,7 @@ export default function HomePage() {
               className="text-base font-semibold tracking-tight text-foreground"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              MediRoute
+              WellPath
             </h1>
           </button>
 
