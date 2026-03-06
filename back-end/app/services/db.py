@@ -5,7 +5,7 @@ from pymongo.collection import Collection
 
 MONGODB_URI = os.getenv("MONGODB_URI", "")
 DATABASE_NAME = os.getenv("MONGODB_DATABASE", "care")
-COLLECTION_NAME = os.getenv("MONGODB_COLLECTION", "referrals")
+COLLECTION_NAME = os.getenv("MONGODB_COLLECTION", "Referrals")
 
 client: MongoClient | None = None
 db_collection: Collection | None = None

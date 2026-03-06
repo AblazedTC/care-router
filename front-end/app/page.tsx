@@ -28,10 +28,7 @@ import {
 import { ReferralModal } from "@/components/referral-modal"
 import { GuestInfoForm, type GuestInfo } from "@/components/guest-info-form"
 import type { TriageCondition } from "@/lib/mock-data"
-import {
-  generateReferralToken,
-  type ScoredHospital,
-} from "@/lib/triage-engine"
+import { type ScoredHospital } from "@/lib/triage-engine"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
@@ -313,12 +310,13 @@ export default function HomePage() {
       {/* Minimal header */}
       <header className="shrink-0 border-b border-border bg-card">
         <div className="flex items-center justify-between px-6 h-14">
-          <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          <button
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-0 p-0"
             onClick={() => {
               setActiveTab("triage")
               handleReset()
             }}
+            aria-label="Reset triage and go to home"
           >
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
               <Activity className="w-4 h-4" />
@@ -329,7 +327,7 @@ export default function HomePage() {
             >
               MediRoute
             </h1>
-          </div>
+          </button>
 
           {/* Tabs in header */}
           <Tabs

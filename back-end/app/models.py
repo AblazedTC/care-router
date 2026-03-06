@@ -75,11 +75,7 @@ class ReferralCreate(BaseModel):
     hospital_id: str = Field(alias="hospitalId")
     condition_name: str = Field(alias="conditionName")
     severity: Severity
-<<<<<<< HEAD
     guest_info: GuestInfo | None = Field(default=None, alias="guestInfo")
-=======
-    summary: str
->>>>>>> bb86b7d (triage follo-up questions)
 
     model_config = {"populate_by_name": True}
 
@@ -91,7 +87,6 @@ class Referral(BaseModel):
     severity: Severity
     issued_at: datetime = Field(alias="issuedAt")
     expires_at: datetime = Field(alias="expiresAt")
-<<<<<<< HEAD
     user_id: str | None = Field(default=None, alias="userId")
     guest_info: GuestInfo | None = Field(default=None, alias="guestInfo")
 
@@ -130,8 +125,3 @@ class TokenResponse(BaseModel):
     access_token: str = Field(alias="accessToken")
     token_type: str = "bearer"
     user: UserResponse
-=======
-    summary: str
->>>>>>> bb86b7d (triage follo-up questions)
-
-    model_config = {"populate_by_name": True}

@@ -143,13 +143,19 @@ export function FollowUpAssessment({
         <h2 className="text-lg font-semibold">
           Question {currentIndex + 1} of {questions.length}
         </h2>
-        <p className="text-base text-muted-foreground">{questions[currentIndex]}</p>
+        <p
+          id={`follow-up-question-${currentIndex}`}
+          className="text-base text-muted-foreground"
+        >
+          {questions[currentIndex]}
+        </p>
         <textarea
           value={answers[currentIndex]}
           onChange={(e) => handleAnswer(e.target.value)}
           placeholder="Add details here (for example: duration, severity, triggers, and anything that improves/worsens symptoms)."
           rows={4}
           className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+          aria-describedby={`follow-up-question-${currentIndex}`}
         />
         <div className="flex flex-wrap gap-2">
           {quickChips.map((chip) => (

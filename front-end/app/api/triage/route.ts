@@ -23,8 +23,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "symptoms is required" }, { status: 400 })
     }
 
+    let backendResponse: Response | null = null
     try {
-      const backendResponse = await fetch(BACKEND_TRIAGE_URL, {
+      backendResponse = await fetch(BACKEND_TRIAGE_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -37,8 +38,31 @@ export async function POST(request: Request) {
         const data = await backendResponse.json()
         return Response.json(data)
       }
-    } catch {
-      // Fall through to local inference if backend is unavailable.
+
+      // For 4xx responses, propagate the backend error/status to the client
+      if (backendResponse.status >= 400 && backendResponse.status < 500) {
+        let errorBody: unknown = null
+        try {
+          errorBody = await backendResponse.json()
+        } catch {
+          // If the body is not JSON or cannot be read, fall back to a generic message.
+        }
+
+        if (errorBody != null) {
+          return new Response(JSON.stringify(errorBody), {
+            status: backendResponse.status,
+            headers: { "Content-Type": "application/json" },
+          })
+        }
+
+        return Response.json(
+          { error: backendResponse.statusText || "Request failed" },
+          { status: backendResponse.status },
+        )
+      }
+    } catch (error) {
+      // Fall through to local inference if backend is unavailable (network error, timeout, etc.).
+      console.log("Backend unavailable, falling back to local inference:", error)
     }
 
     const localCondition = triageFromSymptoms(symptoms) ?? defaultCondition(symptoms)
