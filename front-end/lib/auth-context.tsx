@@ -16,6 +16,9 @@ export interface AuthUser {
   id: string
   email: string
   name: string
+  phone?: string | null
+  address?: string | null
+  dateOfBirth?: string | null
 }
 
 interface AuthContextType {
@@ -28,6 +31,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>
   loginAsGuest: () => void
   logout: () => void
+  updateProfile: (data: Partial<Pick<AuthUser, "name" | "phone" | "address" | "dateOfBirth">>) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -134,6 +139,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsGuest(false)
   }, [])
 
+  const updateProfile = useCallback(
+    async (data: Partial<Pick<AuthUser, "name" | "phone" | "address" | "dateOfBirth">>) => {
+      const stored = token || localStorage.getItem(TOKEN_KEY)
+      if (!stored) throw new Error("Not authenticated")
+
+      const res = await fetch(`${API_URL}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${stored}`,
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Failed to update profile")
+      }
+
+      const updated = await res.json()
+      setUser(updated)
+    },
+    [token]
+  )
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      const stored = token || localStorage.getItem(TOKEN_KEY)
+      if (!stored) throw new Error("Not authenticated")
+
+      const res = await fetch(`${API_URL}/auth/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${stored}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Failed to change password")
+      }
+    },
+    [token]
+  )
+
   const value = useMemo(
     () => ({
       user,
@@ -145,8 +197,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       loginAsGuest,
       logout,
+      updateProfile,
+      changePassword,
     }),
-    [user, token, isGuest, isLoading, login, register, loginAsGuest, logout]
+    [user, token, isGuest, isLoading, login, register, loginAsGuest, logout, updateProfile, changePassword]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
