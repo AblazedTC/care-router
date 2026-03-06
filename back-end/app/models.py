@@ -62,10 +62,20 @@ class TriageResponse(BaseModel):
 # ── Referral ──────────────────────────────────────────────────────────────────
 
 
+class GuestInfo(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    email: str = Field(min_length=3, max_length=255)
+    phone: str = Field(min_length=1, max_length=30)
+    date_of_birth: str = Field(alias="dateOfBirth", min_length=1, max_length=20)
+
+    model_config = {"populate_by_name": True}
+
+
 class ReferralCreate(BaseModel):
     hospital_id: str = Field(alias="hospitalId")
     condition_name: str = Field(alias="conditionName")
     severity: Severity
+    guest_info: GuestInfo | None = Field(default=None, alias="guestInfo")
 
     model_config = {"populate_by_name": True}
 
@@ -77,6 +87,8 @@ class Referral(BaseModel):
     severity: Severity
     issued_at: datetime = Field(alias="issuedAt")
     expires_at: datetime = Field(alias="expiresAt")
+    user_id: str | None = Field(default=None, alias="userId")
+    guest_info: GuestInfo | None = Field(default=None, alias="guestInfo")
 
     model_config = {"populate_by_name": True}
 

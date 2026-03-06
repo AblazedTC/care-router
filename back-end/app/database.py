@@ -26,3 +26,7 @@ async def close_db():
 
 def get_db():
     return db
+
+
+def get_referrals_collection():
+    return get_db()["Referrals"]

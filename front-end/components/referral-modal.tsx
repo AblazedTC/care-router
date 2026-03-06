@@ -21,6 +21,8 @@ interface ReferralModalProps {
   hospital: ScoredHospital | null
   condition: TriageCondition | null
   referralToken: string
+  issuedAt?: Date
+  expiresAt?: Date
 }
 
 export function ReferralModal({
@@ -29,6 +31,8 @@ export function ReferralModal({
   hospital,
   condition,
   referralToken,
+  issuedAt,
+  expiresAt,
 }: ReferralModalProps) {
   const [copied, setCopied] = useState(false)
 
@@ -41,8 +45,8 @@ export function ReferralModal({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const now = new Date()
-  const expiryDate = new Date(now.getTime() + 72 * 60 * 60 * 1000)
+  const now = issuedAt ?? new Date()
+  const expiryDate = expiresAt ?? new Date(now.getTime() + 72 * 60 * 60 * 1000)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
