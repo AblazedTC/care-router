@@ -12,11 +12,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ScoredHospital } from "@/lib/triage-engine"
-
-function getGoogleMapsUrl(name: string, address: string): string {
-  const query = encodeURIComponent(`${name}, ${address}`)
-  return `https://www.google.com/maps/search/?api=1&query=${query}`
-}
+import { getGoogleMapsUrl } from "@/lib/utils"
 
 interface HospitalCardProps {
   hospital: ScoredHospital

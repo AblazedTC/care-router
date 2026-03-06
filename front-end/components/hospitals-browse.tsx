@@ -4,13 +4,9 @@ import { MapPin, Star, BedDouble, Clock, Zap, Search, ExternalLink } from "lucid
 import { useState, useEffect } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { hospitals as mockHospitals, type Hospital } from "@/lib/mock-data"
+import { getGoogleMapsUrl } from "@/lib/utils"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
-
-function getGoogleMapsUrl(name: string, address: string): string {
-  const query = encodeURIComponent(`${name}, ${address}`)
-  return `https://www.google.com/maps/search/?api=1&query=${query}`
-}
 
 export function HospitalsBrowse() {
   const [search, setSearch] = useState("")
@@ -26,8 +22,8 @@ export function HospitalsBrowse() {
             setHospitals(data)
           }
         }
-      } catch {
-        // Fall back to mock data silently
+      } catch (err) {
+        console.error("Failed to fetch hospitals from API, using mock data:", err)
       }
     }
     fetchHospitals()
