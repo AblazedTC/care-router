@@ -34,4 +34,4 @@ def health_check():
 
 @app.get("/hospitals")
 def find_hospital(data: HospitalSearch):
-    return search_hospitals(data.location, data.query, 5000)
+    return search_hospitals((15.4155, 28.2773), data.query, 5000)
