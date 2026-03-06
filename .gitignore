@@ -49,6 +49,7 @@ desktop.ini
 dist/
 build/
 *.egg-info/
+tsconfig.tsbuildinfo
 
 # Logs
 *.log

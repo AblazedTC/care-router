@@ -1,19 +1,20 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.models import TriageRequest, TriageResponse
-from app.services.triage_engine import match_hospitals, triage_from_symptoms_ai, triage_from_symptoms
+from app.services.triage_engine import triage_from_symptoms_ai
 
 router = APIRouter(prefix="/triage", tags=["triage"])
 
 
 @router.post("", response_model=TriageResponse)
-def triage_symptoms(body: TriageRequest):
-    """Submit symptoms and receive AI-powered triage with matched hospitals."""
-    # Try AI first, fallback to keyword matching (which has its own default)
-    condition = triage_from_symptoms_ai(body.symptoms)
+async def triage_symptoms(body: TriageRequest):
+    """Submit symptoms and receive an AI-powered triage condition with matched hospitals.
+
+    Uses OpenAI for high-confidence diagnosis, with a rule-based fallback.
+    Results are cached in MongoDB to avoid redundant API calls.
+    """
+    condition, hospitals, from_cache = await triage_from_symptoms_ai(body.symptoms)
+
     if condition is None:
-        condition = triage_from_symptoms(body.symptoms)
-    
-    # Guaranteed to have a condition now
-    hospitals = match_hospitals(condition)
+        return TriageResponse(condition=None, hospitals=[])
     return TriageResponse(condition=condition, hospitals=hospitals)

@@ -119,6 +119,29 @@ class UserResponse(BaseModel):
     id: str
     email: str
     name: str
+    phone: str | None = None
+    address: str | None = None
+    date_of_birth: str | None = Field(default=None, alias="dateOfBirth")
+
+    model_config = {"populate_by_name": True}
+
+
+class ProfileUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    phone: str | None = Field(default=None, max_length=30)
+    address: str | None = Field(default=None, max_length=500)
+    date_of_birth: str | None = Field(
+        default=None, alias="dateOfBirth", max_length=20
+    )
+
+    model_config = {"populate_by_name": True}
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(alias="currentPassword")
+    new_password: str = Field(alias="newPassword", min_length=6, max_length=128)
+
+    model_config = {"populate_by_name": True}
 
 
 class TokenResponse(BaseModel):

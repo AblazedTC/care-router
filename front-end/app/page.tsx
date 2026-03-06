@@ -8,11 +8,11 @@ import {
   FileText,
   ShieldCheck,
   RotateCcw,
-  LogOut,
-  User,
+  ArrowLeft,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { AuthPage } from "@/components/auth-page"
+import { ProfileMenu } from "@/components/profile-menu"
 import { toast } from "sonner"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -29,6 +29,9 @@ import { ReferralModal } from "@/components/referral-modal"
 import { GuestInfoForm, type GuestInfo } from "@/components/guest-info-form"
 import type { TriageCondition } from "@/lib/mock-data"
 import { type ScoredHospital } from "@/lib/triage-engine"
+import {
+  type ScoredHospital,
+} from "@/lib/triage-engine"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
@@ -42,7 +45,7 @@ type FollowUpFocus =
   | "general"
 
 export default function HomePage() {
-  const { user, token, isAuthenticated, isGuest, isLoading, logout } = useAuth()
+  const { user, token, isAuthenticated, isGuest, isLoading } = useAuth()
   const [activeTab, setActiveTab] = useState("triage")
   const [isProcessing, setIsProcessing] = useState(false)
   const [userInput, setUserInput] = useState("")
@@ -204,6 +207,44 @@ export default function HomePage() {
       setCondition(null)
       setHospitals([])
       setIsProcessing(false)
+
+    try {
+      const res = await fetch(`${API_URL}/triage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symptoms: input }),
+      })
+
+      if (!res.ok) {
+        throw new Error("Triage request failed")
+      }
+
+      const data = await res.json()
+      const result: TriageCondition | null = data.condition ?? null
+      const matched: ScoredHospital[] = data.hospitals ?? []
+
+      if (!result) {
+        toast.error(
+          "Could not identify a condition. Try describing symptoms differently."
+        )
+        setCondition(null)
+        setHospitals([])
+        setIsProcessing(false)
+        return
+      }
+
+      setCondition(result)
+      setHospitals(matched)
+      setIsProcessing(false)
+
+      if (matched.length > 0) {
+        toast.success(`Found ${matched.length} matching hospitals`)
+      }
+    } catch {
+      toast.error("Failed to analyze symptoms. Please try again.")
+      setCondition(null)
+      setHospitals([])
+      setIsProcessing(false)
     }
   }
 
@@ -293,6 +334,13 @@ export default function HomePage() {
     setReferralToken("")
   }
 
+  function handleBack() {
+    setCondition(null)
+    setHospitals([])
+    setSelectedHospital(null)
+    setReferralToken("")
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -366,17 +414,7 @@ export default function HomePage() {
           </Tabs>
 
           <div className="flex items-center gap-3">
-            <span className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
-              <User className="w-3.5 h-3.5" />
-              {isGuest ? "Guest" : user?.name}
-            </span>
-            <button
-              onClick={logout}
-              className="hidden md:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Logout
-            </button>
+            <ProfileMenu />
           </div>
         </div>
 
@@ -434,15 +472,26 @@ export default function HomePage() {
                 {/* Left panel: assessment */}
                 <div className="shrink-0 lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r border-border p-5 flex flex-col gap-4 overflow-y-auto">
                   <TriageResult condition={condition} userInput={userInput} />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    className="gap-1.5 self-start text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Start over
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleBack}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      Back
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReset}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Start over
+                    </Button>
+                  </div>
                 </div>
                 {/* Right panel: hospitals */}
                 <div className="flex-1 min-w-0 min-h-0 p-5">
@@ -459,6 +508,7 @@ export default function HomePage() {
                   <SymptomInput
                     onSubmit={handleSymptomSubmit}
                     isProcessing={isProcessing}
+                    initialValue={userInput}
                   />
                 </div>
               </div>
