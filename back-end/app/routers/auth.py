@@ -1,7 +1,15 @@
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.database import get_db
-from app.models import TokenResponse, UserLogin, UserRegister, UserResponse
+from app.models import (
+    PasswordChange,
+    ProfileUpdate,
+    TokenResponse,
+    UserLogin,
+    UserRegister,
+    UserResponse,
+)
 from app.services.auth_service import (
     create_access_token,
     get_current_user,
@@ -63,5 +71,82 @@ async def login(body: UserLogin):
 
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: dict = Depends(get_current_user)):
-    """Return the currently authenticated user."""
-    return UserResponse(**current_user)
+    """Return the currently authenticated user with full profile."""
+    db = get_db()
+    user = await db.Users.find_one({"_id": ObjectId(current_user["id"])})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    return UserResponse(
+        id=str(user["_id"]),
+        email=user["email"],
+        name=user["name"],
+        phone=user.get("phone"),
+        address=user.get("address"),
+        dateOfBirth=user.get("date_of_birth"),
+    )
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    body: ProfileUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Update the current user's profile information."""
+    db = get_db()
+    updates: dict = {}
+    if body.name is not None:
+        updates["name"] = body.name.strip()
+    if body.phone is not None:
+        updates["phone"] = body.phone.strip()
+    if body.address is not None:
+        updates["address"] = body.address.strip()
+    if body.date_of_birth is not None:
+        updates["date_of_birth"] = body.date_of_birth.strip()
+
+    if not updates:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields to update",
+        )
+
+    await db.Users.update_one(
+        {"_id": ObjectId(current_user["id"])}, {"$set": updates}
+    )
+
+    user = await db.Users.find_one({"_id": ObjectId(current_user["id"])})
+    return UserResponse(
+        id=str(user["_id"]),
+        email=user["email"],
+        name=user["name"],
+        phone=user.get("phone"),
+        address=user.get("address"),
+        dateOfBirth=user.get("date_of_birth"),
+    )
+
+
+@router.put("/password")
+async def change_password(
+    body: PasswordChange,
+    current_user: dict = Depends(get_current_user),
+):
+    """Change the current user's password."""
+    db = get_db()
+    user = await db.Users.find_one({"_id": ObjectId(current_user["id"])})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    if not verify_password(body.current_password, user["password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    await db.Users.update_one(
+        {"_id": ObjectId(current_user["id"])},
+        {"$set": {"password": hash_password(body.new_password)}},
+    )
+    return {"detail": "Password updated successfully"}
