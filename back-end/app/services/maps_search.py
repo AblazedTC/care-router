@@ -14,6 +14,7 @@ def search_hospitals(location, query, radius):
         keyword=query
     )
     return [
-        {"name": place["name"], "address": place.get("vicinity")}
+        {"name": place["name"], "address": place.get("vicinity"), "rating": place["rating"]}
         for place in results.get("results", [])
     ]
+
