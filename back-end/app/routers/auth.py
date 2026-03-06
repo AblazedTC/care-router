@@ -99,11 +99,14 @@ async def update_profile(
     if body.name is not None:
         updates["name"] = body.name.strip()
     if body.phone is not None:
-        updates["phone"] = body.phone.strip()
+        val = body.phone.strip()
+        updates["phone"] = val if val else None
     if body.address is not None:
-        updates["address"] = body.address.strip()
+        val = body.address.strip()
+        updates["address"] = val if val else None
     if body.date_of_birth is not None:
-        updates["date_of_birth"] = body.date_of_birth.strip()
+        val = body.date_of_birth.strip()
+        updates["date_of_birth"] = val if val else None
 
     if not updates:
         raise HTTPException(
