@@ -182,13 +182,18 @@ async def create_referral(
     )
 
     col = get_referrals_collection()
-    await col.insert_one(referral.model_dump(by_alias=True))
+    if col is not None:
+        await col.insert_one(referral.model_dump(by_alias=True))
+    else:
+        logger.warning("MongoDB unavailable — referral created but not persisted")
     return referral
 
 
 async def get_referrals_for_user(user_id: str) -> list[Referral]:
     """Return all referrals for a given authenticated user."""
     col = get_referrals_collection()
+    if col is None:
+        return []
     docs = await col.find({"userId": user_id}).sort("issuedAt", -1).to_list(length=200)
     return [Referral(**doc) for doc in docs]
 
@@ -196,6 +201,8 @@ async def get_referrals_for_user(user_id: str) -> list[Referral]:
 async def get_referral_by_token(token: str) -> Referral | None:
     """Look up a referral by its token."""
     col = get_referrals_collection()
+    if col is None:
+        return None
     doc = await col.find_one({"token": token})
     if doc is None:
         return None
